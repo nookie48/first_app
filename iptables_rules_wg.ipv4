@@ -1,0 +1,70 @@
+#!/bin/sh
+#Переменные
+EXT_IP=$(curl ipinfo.io/ip)
+INT_IP=10.8.0.1
+LAN_IP=10.8.0.3
+WAN="eth0"
+LAN="wg0"
+LAN_NET="10.8.0.0/24"
+
+###Allow WG
+iptables -A INPUT -p tcp --dport 51820 -s 188.18.55.218 -j ACCEPT
+iptables -A INPUT -p udp --dport 51820 -s 188.18.55.218 -j ACCEPT
+
+iptables -t nat -I POSTROUTING 1 -s $LAN_NET -o $WAN -j MASQUERADE
+
+iptables -I INPUT -p udp --dport 51820 -j ACCEPT
+iptables -I FORWARD -i eth0 -o wg0 -j ACCEPT
+iptables -I FORWARD -i wg0 -j ACCEPT
+iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+#iptables -I INPUT 1 -i {interface} -j ACCEPT
+iptables -I INPUT 1 -i $LAN -j ACCEPT
+
+iptables -I FORWARD 1 -i $WAN -o $LAN -j ACCEPT
+iptables -I FORWARD 1 -i $LAN -o $WAN -j ACCEPT
+
+#проброс FARCASTER
+SRV_PORT1=2281
+SRV_PORT2=2282
+SRV_PORT3=2283
+SRV_PORT4=3000
+
+
+iptables -t nat -A PREROUTING --dst $EXT_IP -p tcp --dport $SRV_PORT1 -j DNAT --to-destination $LAN_IP
+iptables -t nat -A POSTROUTING --dst $LAN_IP -p tcp --dport $SRV_PORT1 -j SNAT --to-source $INT_IP
+iptables -t nat -A OUTPUT --dst $EXT_IP -p tcp --dport $SRV_PORT1 -j DNAT --to-destination $LAN_IP
+iptables -I FORWARD 1 -i $WAN -o $LAN -d $LAN_IP -p tcp -m tcp --dport $SRV_PORT1 -j ACCEPT
+
+iptables -t nat -A PREROUTING --dst $EXT_IP -p tcp --dport $SRV_PORT2 -j DNAT --to-destination $LAN_IP
+iptables -t nat -A POSTROUTING --dst $LAN_IP -p tcp --dport $SRV_PORT2 -j SNAT --to-source $INT_IP
+iptables -t nat -A OUTPUT --dst $EXT_IP -p tcp --dport $SRV_PORT2 -j DNAT --to-destination $LAN_IP
+iptables -I FORWARD 1 -i $WAN -o $LAN -d $LAN_IP -p tcp -m tcp --dport $SRV_PORT2 -j ACCEPT
+
+iptables -t nat -A PREROUTING --dst $EXT_IP -p tcp --dport $SRV_PORT3 -j DNAT --to-destination $LAN_IP
+iptables -t nat -A POSTROUTING --dst $LAN_IP -p tcp --dport $SRV_PORT3 -j SNAT --to-source $INT_IP
+iptables -t nat -A OUTPUT --dst $EXT_IP -p tcp --dport $SRV_PORT3 -j DNAT --to-destination $LAN_IP
+iptables -I FORWARD 1 -i $WAN -o $LAN -d $LAN_IP -p tcp -m tcp --dport $SRV_PORT3 -j ACCEPT
+
+iptables -t nat -A PREROUTING --dst $EXT_IP -p tcp --dport $SRV_PORT4 -j DNAT --to-destination $LAN_IP
+iptables -t nat -A POSTROUTING --dst $LAN_IP -p tcp --dport $SRV_PORT4 -j SNAT --to-source $INT_IP
+iptables -t nat -A OUTPUT --dst $EXT_IP -p tcp --dport $SRV_PORT4 -j DNAT --to-destination $LAN_IP
+iptables -I FORWARD 1 -i $WAN -o $LAN -d $LAN_IP -p tcp -m tcp --dport $SRV_PORT4 -j ACCEPT
+
+SRV_PORT5=88
+iptables -t nat -A PREROUTING --dst $EXT_IP -p tcp --dport $SRV_PORT5 -j DNAT --to-destination $LAN_IP
+iptables -t nat -A POSTROUTING --dst $LAN_IP -p tcp --dport $SRV_PORT5 -j SNAT --to-source $INT_IP
+iptables -t nat -A OUTPUT --dst $EXT_IP -p tcp --dport $SRV_PORT5 -j DNAT --to-destination $LAN_IP
+iptables -I FORWARD 1 -i $WAN -o $LAN -d $LAN_IP -p tcp -m tcp --dport $SRV_PORT5 -j ACCEPT
+###конец FARCASTER
+
+##проброс nubit
+iptables -t nat -A PREROUTING --dst $EXT_IP -p tcp --dport 2121 -j DNAT --to-destination $LAN_IP
+iptables -t nat -A POSTROUTING --dst $LAN_IP -p tcp --dport 2121 -j SNAT --to-source $INT_IP
+iptables -t nat -A OUTPUT --dst $EXT_IP -p tcp --dport 2121 -j DNAT --to-destination $LAN_IP
+iptables -I FORWARD 1 -i $WAN -o $LAN -d $LAN_IP -p tcp -m tcp --dport 2121 -j ACCEPT
+
+iptables -t nat -A PREROUTING --dst $EXT_IP -p udp --dport 2121 -j DNAT --to-destination $LAN_IP
+iptables -t nat -A POSTROUTING --dst $LAN_IP -p udp --dport 2121 -j SNAT --to-source $INT_IP
+iptables -t nat -A OUTPUT --dst $EXT_IP -p udp --dport 2121 -j DNAT --to-destination $LAN_IP
+iptables -I FORWARD 1 -i $WAN -o $LAN -d $LAN_IP -p udp -m udp --dport 2121 -j ACCEPT
